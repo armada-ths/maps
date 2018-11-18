@@ -221,7 +221,10 @@
             .addTo(map);
 
         if (selectedBoothMarker) {
-          selectedBoothMarker.addTo(map).openPopup();
+          if (qs.embedded != 1) {
+            selectedBoothMarker.openPopup();
+					}
+
           map.flyTo(selectedBoothMarker.getLatLng(), -1);
         }
       });
