@@ -34,8 +34,12 @@
 				map = L.map('map',
 				{
 					crs: L.CRS.Simple,
+					zoomControl: false,
 					minZoom: -5
 				});
+
+        L.control.zoom({position: 'bottomleft'})
+						.addTo(map);
 
 				setup_maps();
 			});
@@ -89,6 +93,8 @@
 			{
 				$.get('https://ais.armada.nu/api/exhibitors/locations/' + id, function(location)
 				{
+          document.getElementById("title").innerText = location.parent ? location.parent.name + ' - ' + location.name : location.name;
+
 					if (imageLayer) {
 					  map.removeLayer(imageLayer);
 					  map.removeLayer(markerGroup);
@@ -143,8 +149,11 @@
 						if (isSelectedBooth) selectedBoothMarker = marker;
 					}
 
-					markerGroup = L.layerGroup(markers).addTo(map);
-          polylineGroup = L.layerGroup(polylines).addTo(map);
+					markerGroup = L.layerGroup(markers)
+							.addTo(map);
+          polylineGroup = L.layerGroup(polylines)
+							.addTo(map);
+
 
           if (selectedBoothMarker) {
             selectedBoothMarker.openPopup();
@@ -162,8 +171,22 @@
 				margin: 0;
 			}
 
-			#map
-			{
+			#title-wrapper {
+				position: absolute;
+				background-color: #ffffff;
+				top: 16px;
+				left: 16px;
+				z-index: 10;
+			}
+
+			#title {
+				margin: 0;
+        color: #06d591;
+        font-size: 2rem;
+				font-family: Helvetica Neue, Helvetica, Arial, sans-serif;
+			}
+
+			#map {
 				position: fixed;
 				top: 0;
 				right: 0;
@@ -177,18 +200,20 @@
 				align-items: center;
 				position: absolute;
 				padding: 12px;
-				top: 16px;
+				bottom: 16px;
 				right: 16px;
 				z-index: 10;
         border-radius: 4px;
-				border: solid 1px #d5d5d5;
-				background-color: #f5f5f5;
+        border: solid 2px rgba(0,0,0,0.2);
 			}
 
 		</style>
 	</head>
 
 	<body>
+		<div id="title-wrapper">
+			<h1 id="title"></h1>
+		</div>
 		<div id="select-menu">
 			<select id="map-select"></select>
 		</div>
