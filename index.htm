@@ -20,6 +20,10 @@
 		<script src="jquery-3.3.1.min.js"></script>
 		<script>
 			var map;
+			var image;
+			var selectedId;
+			var markerGroup;
+			var polylineGroup;
 
 			$(function()
 			{
@@ -37,39 +41,51 @@
 			{
 				$.get('https://ais.armada.nu/api/exhibitors/locations', function(locations)
 				{
-					var i = 1;
-					var desired = 5;
 					var select = document.getElementById("map-select");
 
 					for (var location of locations)
 					{
 						if (location.has_map)
 						{
-						  var location_name = location.parent ? location.parent.name + ' - ' + location.name : location.name;
+
+						  if (!selectedId) selectedId = location.id;
+
+						  var formatedName = location.parent ? location.parent.name + ' - ' + location.name : location.name;
 
 						  var option = document.createElement('option');
-						  option.innerText = location_name;
+						  option.innerText = formatedName;
+						  option.value = location.id;
 
 						  select.appendChild(option);
-
-							if (i == desired) { setup_map(location.id); }
-							i++;
 						}
 					}
+
+					select.addEventListener('change', function (event) {
+					  setup_map(event.target.value);
+          });
+
+          setup_map(selectedId);
 				});
 			};
-			
-			
+
+
 			var setup_map = function(id)
 			{
 				$.get('https://ais.armada.nu/api/exhibitors/locations/' + id, function(location)
 				{
-					console.log(location)
-					
+					if (image) {
+					  map.removeLayer(image);
+					  map.removeLayer(markerGroup);
+            map.removeLayer(polylineGroup);
+					}
+
 					var bounds = [[0,0], [location.map.height,location.map.width]];
-					var image = L.imageOverlay('https://ais.armada.nu/' + location.map.url, bounds).addTo(map);
+					image = L.imageOverlay('https://ais.armada.nu/' + location.map.url, bounds).addTo(map);
 					map.fitBounds(bounds);
-					
+
+					var markers = [];
+					var polylines = [];
+
 					for (var booth of location.booths)
 					{
 						var boundaries_scaled = [];
@@ -86,11 +102,12 @@
               booth.centroid[0] * location.map.width
             ];
 
-						L.polyline(boundaries_scaled, {color: '#06d591'}).addTo(map);
-						L.marker(centroid_scaled).addTo(map).bindPopup(booth.name);
+						polylines.push(L.polyline(boundaries_scaled, {color: '#06d591'}).addTo(map));
+						markers.push(L.marker(centroid_scaled).addTo(map).bindPopup(booth.name));
 					}
-					
-					//map.removeLayer(image);
+
+					markerGroup = L.layerGroup(markers).addTo(map);
+          polylineGroup = L.layerGroup(polylines).addTo(map);
 				});
 			}
 		</script>
@@ -111,19 +128,27 @@
 				left: 0;
 			}
 
-			#map-select {
+			#select-menu {
+				display: flex;
+				justify-content: center;
+				align-items: center;
 				position: absolute;
+				padding: 12px;
 				top: 16px;
 				right: 16px;
 				z-index: 10;
+        border-radius: 4px;
+				border: solid 1px #d5d5d5;
+				background-color: #f5f5f5;
 			}
 
 		</style>
 	</head>
 	
 	<body>
-		<select id="map-select">
-		</select>
+		<div id="select-menu">
+			<select id="map-select"></select>
+		</div>
 		<div id="map"></div>
 	</body>
 </html>
