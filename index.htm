@@ -3,25 +3,29 @@
 <html>
 	<head>
 		<title>Armada Maps</title>
-		
+
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		
+
 		<style type="text/css">
 			#map
 			{
 				background-color:rgba(255,0,0,0.0);
 			}
 		</style>
-		
+
 		<link rel="shortcut icon" type="image/x-icon" href="docs/images/favicon.ico" />
 		<link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.4/dist/leaflet.css" integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA==" crossorigin=""/>
 		<script src="https://unpkg.com/leaflet@1.3.4/dist/leaflet.js" integrity="sha512-nMMmRyTVoLYqjP9hrbed9S+FzjZHW5gY1TWCHA5ckwXZBadntCNs8kEqAWdrb9O7rxbCaA4lKTIWjDXZxflOcA==" crossorigin=""></script>
 		<script src="jquery-3.3.1.min.js"></script>
 		<script>
-			var map;
-			var image;
-			var selectedId;
+			var qs = parseQuery(window.location.search);
+
+      var map;
+			var imageLayer;
+			var selectedLocationId = qs.location ? qs.location : undefined;
+			var selectedBoothId = qs.booth ? qs.booth : undefined;
+			var selectedBoothMarker;
 			var markerGroup;
 			var polylineGroup;
 
@@ -32,11 +36,21 @@
 					crs: L.CRS.Simple,
 					minZoom: -5
 				});
-				
+
 				setup_maps();
 			});
-			
-			
+
+			function parseQuery(queryString) {
+			  var query = {};
+			  var pairs = (queryString[0] === '?' ? queryString.substr(1) : queryString).split('&');
+			  for (var i = 0; i < pairs.length; i++) {
+			    var pair = pairs[i].split('=');
+			    query[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || '');
+			  }
+			  return query;
+			}
+
+
 			var setup_maps = function()
 			{
 				$.get('https://ais.armada.nu/api/exhibitors/locations', function(locations)
@@ -48,12 +62,12 @@
 						if (location.has_map)
 						{
 
-						  if (!selectedId) selectedId = location.id;
+						  if (!selectedLocationId) selectedLocationId = location.id;
 
-						  var formatedName = location.parent ? location.parent.name + ' - ' + location.name : location.name;
+						  var formattedName = location.parent ? location.parent.name + ' - ' + location.name : location.name;
 
 						  var option = document.createElement('option');
-						  option.innerText = formatedName;
+						  option.innerText = formattedName;
 						  option.value = location.id;
 
 						  select.appendChild(option);
@@ -64,7 +78,9 @@
 					  setup_map(event.target.value);
           });
 
-          setup_map(selectedId);
+					select.value = selectedLocationId;
+
+          setup_map(selectedLocationId);
 				});
 			};
 
@@ -73,14 +89,16 @@
 			{
 				$.get('https://ais.armada.nu/api/exhibitors/locations/' + id, function(location)
 				{
-					if (image) {
-					  map.removeLayer(image);
+					if (imageLayer) {
+					  map.removeLayer(imageLayer);
 					  map.removeLayer(markerGroup);
             map.removeLayer(polylineGroup);
 					}
 
+					selectedBoothMarker = undefined;
+
 					var bounds = [[0,0], [location.map.height,location.map.width]];
-					image = L.imageOverlay('https://ais.armada.nu/' + location.map.url, bounds).addTo(map);
+					imageLayer = L.imageOverlay('https://ais.armada.nu/' + location.map.url, bounds).addTo(map);
 					map.fitBounds(bounds);
 
 					var markers = [];
@@ -88,6 +106,8 @@
 
 					for (var booth of location.booths)
 					{
+					  var isSelectedBooth = booth.id == selectedBoothId;
+
 						var boundaries_scaled = [];
 
 						for (var boundary of booth.boundaries)
@@ -102,23 +122,32 @@
               booth.centroid[0] * location.map.width
             ];
 
-						polylines.push(L.polyline(boundaries_scaled, {color: '#06d591'}).addTo(map));
-						markers.push(L.marker(centroid_scaled).addTo(map).bindPopup(booth.name));
+            var boothColor = isSelectedBooth ? '#F44336' : '#06d591';
+
+						polylines.push(L.polyline(boundaries_scaled, {color: boothColor}));
+
+						var marker = L.marker(centroid_scaled).bindPopup(booth.name);
+
+						markers.push(marker);
+
+						if (isSelectedBooth) selectedBoothMarker = marker;
 					}
 
 					markerGroup = L.layerGroup(markers).addTo(map);
           polylineGroup = L.layerGroup(polylines).addTo(map);
+
+          if (selectedBoothMarker) selectedBoothMarker.openPopup();
 				});
 			}
 		</script>
-		
+
 		<style>
 			html, body
 			{
 				height: 100%;
 				margin: 0;
 			}
-			
+
 			#map
 			{
 				position: fixed;
@@ -144,7 +173,7 @@
 
 		</style>
 	</head>
-	
+
 	<body>
 		<div id="select-menu">
 			<select id="map-select"></select>
