@@ -126,7 +126,17 @@
 
 						polylines.push(L.polyline(boundaries_scaled, {color: boothColor}));
 
-						var marker = L.marker(centroid_scaled).bindPopup(booth.name);
+            var popupLabel = booth.name;
+
+						if (booth.exhibitors.length > 0) {
+						  var exhibitorsName = booth.exhibitors.map(function (exhibitor) {
+						    return exhibitor.name;
+              });
+
+						  popupLabel = popupLabel + ' - ' + exhibitorsName.join(" & ");
+						}
+
+						var marker = L.marker(centroid_scaled).bindPopup(popupLabel);
 
 						markers.push(marker);
 
