@@ -212,16 +212,17 @@
           if (isSelectedBooth) selectedBoothMarker = marker;
         }
 
-        markerGroup = L.layerGroup(markers)
-            .addTo(map);
+				if (qs.embedded != 1) {
+          markerGroup = L.layerGroup(markers)
+              .addTo(map);
+				}
+
         polylineGroup = L.layerGroup(polylines)
             .addTo(map);
 
-
         if (selectedBoothMarker) {
-          selectedBoothMarker.openPopup();
+          selectedBoothMarker.addTo(map).openPopup();
           map.flyTo(selectedBoothMarker.getLatLng(), -1);
-
         }
       });
     }
