@@ -17,10 +17,10 @@
 		<link rel="shortcut icon" type="image/x-icon" href="docs/images/favicon.ico" />
 		<link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.4/dist/leaflet.css" integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA==" crossorigin=""/>
 		<script src="https://unpkg.com/leaflet@1.3.4/dist/leaflet.js" integrity="sha512-nMMmRyTVoLYqjP9hrbed9S+FzjZHW5gY1TWCHA5ckwXZBadntCNs8kEqAWdrb9O7rxbCaA4lKTIWjDXZxflOcA==" crossorigin=""></script>
-		<script src="/jquery-3.3.1.min.js"></script>
+		<script src="jquery-3.3.1.min.js"></script>
 		<script>
 			var map;
-			
+
 			$(function()
 			{
 				map = L.map('map',
@@ -35,15 +35,23 @@
 			
 			var setup_maps = function()
 			{
-				$.get('//ais.armada.nu/api/exhibitors/locations', function(locations)
+				$.get('https://ais.armada.nu/api/exhibitors/locations', function(locations)
 				{
 					var i = 1;
-					var desired = 2;
-					
+					var desired = 5;
+					var select = document.getElementById("map-select");
+
 					for (var location of locations)
 					{
 						if (location.has_map)
 						{
+						  var location_name = location.parent ? location.parent.name + ' - ' + location.name : location.name;
+
+						  var option = document.createElement('option');
+						  option.innerText = location_name;
+
+						  select.appendChild(option);
+
 							if (i == desired) { setup_map(location.id); }
 							i++;
 						}
@@ -54,24 +62,32 @@
 			
 			var setup_map = function(id)
 			{
-				$.get('//ais.armada.nu/api/exhibitors/locations/' + id, function(location)
+				$.get('https://ais.armada.nu/api/exhibitors/locations/' + id, function(location)
 				{
 					console.log(location)
 					
 					var bounds = [[0,0], [location.map.height,location.map.width]];
-					var image = L.imageOverlay('//ais.armada.nu/' + location.map.url, bounds).addTo(map);
+					var image = L.imageOverlay('https://ais.armada.nu/' + location.map.url, bounds).addTo(map);
 					map.fitBounds(bounds);
 					
 					for (var booth of location.booths)
 					{
 						var boundaries_scaled = [];
-						
+
 						for (var boundary of booth.boundaries)
 						{
 							boundaries_scaled.push(L.latLng(location.map.height - (boundary[1] * location.map.height), boundary[0] * location.map.width));
 						}
-						
-						L.polyline(boundaries_scaled).addTo(map);
+
+            var centroid_scaled = [];
+
+            centroid_scaled = [
+              location.map.height - booth.centroid[1] * location.map.height,
+              booth.centroid[0] * location.map.width
+            ];
+
+						L.polyline(boundaries_scaled, {color: '#06d591'}).addTo(map);
+						L.marker(centroid_scaled).addTo(map).bindPopup(booth.name);
 					}
 					
 					//map.removeLayer(image);
@@ -94,10 +110,20 @@
 				bottom: 0;
 				left: 0;
 			}
+
+			#map-select {
+				position: absolute;
+				top: 16px;
+				right: 16px;
+				z-index: 10;
+			}
+
 		</style>
 	</head>
 	
 	<body>
+		<select id="map-select">
+		</select>
 		<div id="map"></div>
 	</body>
 </html>
