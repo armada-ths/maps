@@ -18,157 +18,15 @@
 		<link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.4/dist/leaflet.css" integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA==" crossorigin=""/>
 		<script src="https://unpkg.com/leaflet@1.3.4/dist/leaflet.js" integrity="sha512-nMMmRyTVoLYqjP9hrbed9S+FzjZHW5gY1TWCHA5ckwXZBadntCNs8kEqAWdrb9O7rxbCaA4lKTIWjDXZxflOcA==" crossorigin=""></script>
 		<script src="jquery-3.3.1.min.js"></script>
-		<script>
-			var qs = parseQuery(window.location.search);
-
-      var map;
-			var imageLayer;
-			var selectedLocationId = qs.location ? qs.location : undefined;
-			var selectedBoothId = qs.booth ? qs.booth : undefined;
-			var selectedBoothMarker;
-			var markerGroup;
-			var polylineGroup;
-
-			$(function()
-			{
-				map = L.map('map',
-				{
-					crs: L.CRS.Simple,
-					zoomControl: false,
-					minZoom: -5
-				});
-
-        L.control.zoom({position: 'bottomleft'})
-						.addTo(map);
-
-				setup_maps();
-			});
-
-			function parseQuery(queryString) {
-			  var query = {};
-			  var pairs = (queryString[0] === '?' ? queryString.substr(1) : queryString).split('&');
-			  for (var i = 0; i < pairs.length; i++) {
-			    var pair = pairs[i].split('=');
-			    query[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || '');
-			  }
-			  return query;
-			}
-
-
-			var setup_maps = function()
-			{
-				$.get('https://ais.armada.nu/api/exhibitors/locations', function(locations)
-				{
-					var select = document.getElementById("map-select");
-
-					for (var location of locations)
-					{
-						if (location.has_map)
-						{
-
-						  if (!selectedLocationId) selectedLocationId = location.id;
-
-						  var formattedName = location.parent ? location.parent.name + ' - ' + location.name : location.name;
-
-						  var option = document.createElement('option');
-						  option.innerText = formattedName;
-						  option.value = location.id;
-
-						  select.appendChild(option);
-						}
-					}
-
-					select.addEventListener('change', function (event) {
-					  setup_map(event.target.value);
-          });
-
-					select.value = selectedLocationId;
-
-          setup_map(selectedLocationId);
-				});
-			};
-
-
-			var setup_map = function(id)
-			{
-				$.get('https://ais.armada.nu/api/exhibitors/locations/' + id, function(location)
-				{
-          document.getElementById("title").innerText = location.parent ? location.parent.name + ' - ' + location.name : location.name;
-
-					if (imageLayer) {
-					  map.removeLayer(imageLayer);
-					  map.removeLayer(markerGroup);
-            map.removeLayer(polylineGroup);
-					}
-
-					selectedBoothMarker = undefined;
-
-					var bounds = [[0,0], [location.map.height,location.map.width]];
-					imageLayer = L.imageOverlay('https://ais.armada.nu/' + location.map.url, bounds).addTo(map);
-					map.fitBounds(bounds);
-
-					var markers = [];
-					var polylines = [];
-
-					for (var booth of location.booths)
-					{
-					  var isSelectedBooth = booth.id == selectedBoothId;
-
-						var boundaries_scaled = [];
-
-						for (var boundary of booth.boundaries)
-						{
-							boundaries_scaled.push(L.latLng(location.map.height - (boundary[1] * location.map.height), boundary[0] * location.map.width));
-						}
-
-            var centroid_scaled = [];
-
-            centroid_scaled = [
-              location.map.height - booth.centroid[1] * location.map.height,
-              booth.centroid[0] * location.map.width
-            ];
-
-            var boothColor = isSelectedBooth ? '#F44336' : '#06d591';
-
-						polylines.push(L.polyline(boundaries_scaled, {color: boothColor}));
-
-            var popupLabel = booth.name;
-
-						if (booth.exhibitors.length > 0) {
-						  var exhibitorsName = booth.exhibitors.map(function (exhibitor) {
-						    return exhibitor.name;
-              });
-
-						  popupLabel = popupLabel + ' - ' + exhibitorsName.join(" & ");
-						}
-
-						var marker = L.marker(centroid_scaled).bindPopup(popupLabel);
-
-						markers.push(marker);
-
-						if (isSelectedBooth) selectedBoothMarker = marker;
-					}
-
-					markerGroup = L.layerGroup(markers)
-							.addTo(map);
-          polylineGroup = L.layerGroup(polylines)
-							.addTo(map);
-
-
-          if (selectedBoothMarker) {
-            selectedBoothMarker.openPopup();
-            map.flyTo(selectedBoothMarker.getLatLng(), -1);
-
-          }
-				});
-			}
-		</script>
-
 		<style>
 			html, body
 			{
 				height: 100%;
 				margin: 0;
+			}
+
+			.hidden {
+				display: none !important;
 			}
 
 			#title-wrapper {
@@ -209,7 +67,6 @@
 
 		</style>
 	</head>
-
 	<body>
 		<div id="title-wrapper">
 			<h1 id="title"></h1>
@@ -219,4 +76,154 @@
 		</div>
 		<div id="map"></div>
 	</body>
+	<script>
+    var qs = parseQuery(window.location.search);
+
+    var map;
+    var imageLayer;
+    var selectedLocationId = qs.location ? qs.location : undefined;
+    var selectedBoothId = qs.booth ? qs.booth : undefined;
+    var selectedBoothMarker;
+    var markerGroup;
+    var polylineGroup;
+
+    if (qs.embedded == 1) {
+      document.getElementById('select-menu').classList.add('hidden');
+      document.getElementById('title-wrapper').classList.add('hidden');
+    }
+
+    $(function()
+    {
+      map = L.map('map',
+          {
+            crs: L.CRS.Simple,
+            zoomControl: false,
+            minZoom: -5
+          });
+
+      L.control.zoom({position: 'bottomleft'})
+          .addTo(map);
+
+      setup_maps();
+    });
+
+    function parseQuery(queryString) {
+      var query = {};
+      var pairs = (queryString[0] === '?' ? queryString.substr(1) : queryString).split('&');
+      for (var i = 0; i < pairs.length; i++) {
+        var pair = pairs[i].split('=');
+        query[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || '');
+      }
+      return query;
+    }
+
+
+    var setup_maps = function()
+    {
+      $.get('https://ais.armada.nu/api/exhibitors/locations', function(locations)
+      {
+        var select = document.getElementById("map-select");
+
+        for (var location of locations)
+        {
+          if (location.has_map)
+          {
+
+            if (!selectedLocationId) selectedLocationId = location.id;
+
+            var formattedName = location.parent ? location.parent.name + ' - ' + location.name : location.name;
+
+            var option = document.createElement('option');
+            option.innerText = formattedName;
+            option.value = location.id;
+
+            select.appendChild(option);
+          }
+        }
+
+        select.addEventListener('change', function (event) {
+          setup_map(event.target.value);
+        });
+
+        select.value = selectedLocationId;
+
+        setup_map(selectedLocationId);
+      });
+    };
+
+
+    var setup_map = function(id)
+    {
+      $.get('https://ais.armada.nu/api/exhibitors/locations/' + id, function(location)
+      {
+        document.getElementById("title").innerText = location.parent ? location.parent.name + ' - ' + location.name : location.name;
+
+        if (imageLayer) {
+          map.removeLayer(imageLayer);
+          map.removeLayer(markerGroup);
+          map.removeLayer(polylineGroup);
+        }
+
+        selectedBoothMarker = undefined;
+
+        var bounds = [[0,0], [location.map.height,location.map.width]];
+        imageLayer = L.imageOverlay('https://ais.armada.nu/' + location.map.url, bounds).addTo(map);
+        map.fitBounds(bounds);
+
+        var markers = [];
+        var polylines = [];
+
+        for (var booth of location.booths)
+        {
+          var isSelectedBooth = booth.id == selectedBoothId;
+
+          var boundaries_scaled = [];
+
+          for (var boundary of booth.boundaries)
+          {
+            boundaries_scaled.push(L.latLng(location.map.height - (boundary[1] * location.map.height), boundary[0] * location.map.width));
+          }
+
+          var centroid_scaled = [];
+
+          centroid_scaled = [
+            location.map.height - booth.centroid[1] * location.map.height,
+            booth.centroid[0] * location.map.width
+          ];
+
+          var boothColor = isSelectedBooth ? '#F44336' : '#06d591';
+
+          polylines.push(L.polyline(boundaries_scaled, {color: boothColor}));
+
+          var popupLabel = booth.name;
+
+          if (booth.exhibitors.length > 0) {
+            var exhibitorsName = booth.exhibitors.map(function (exhibitor) {
+              return exhibitor.name;
+            });
+
+            popupLabel = popupLabel + ' - ' + exhibitorsName.join(" & ");
+          }
+
+          var marker = L.marker(centroid_scaled).bindPopup(popupLabel);
+
+          markers.push(marker);
+
+          if (isSelectedBooth) selectedBoothMarker = marker;
+        }
+
+        markerGroup = L.layerGroup(markers)
+            .addTo(map);
+        polylineGroup = L.layerGroup(polylines)
+            .addTo(map);
+
+
+        if (selectedBoothMarker) {
+          selectedBoothMarker.openPopup();
+          map.flyTo(selectedBoothMarker.getLatLng(), -1);
+
+        }
+      });
+    }
+	</script>
 </html>
