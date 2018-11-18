@@ -146,7 +146,11 @@
 					markerGroup = L.layerGroup(markers).addTo(map);
           polylineGroup = L.layerGroup(polylines).addTo(map);
 
-          if (selectedBoothMarker) selectedBoothMarker.openPopup();
+          if (selectedBoothMarker) {
+            selectedBoothMarker.openPopup();
+            map.flyTo(selectedBoothMarker.getLatLng(), -1);
+
+          }
 				});
 			}
 		</script>
