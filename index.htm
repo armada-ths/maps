@@ -144,7 +144,7 @@
             {
                 for (var booth of exhibitor.booths)
                 {
-                    $('#exhibitor-select').append('<option value="' + booth.id + '" data-location="' + booth.location.id + '"' + (selectedBoothId == booth.id ? ' selected' : '') + '>' + exhibitor.name + ' (' + (booth.location.parent !== null ? (booth.location.parent.name + ' – ') : '') + booth.location.name + ' – ' + booth.name + ')</option>');
+                    $('#exhibitor-select').append('<option value="' + booth.id + '" data-location="' + booth.location.id + '"' + (selectedBoothId == booth.id ? ' selected' : '') + '>' + exhibitor.name + (exhibitor.booths.length != 1 ? (' (' + booth.name + ')') : '') + '</option>');
                 }
             }
         });
