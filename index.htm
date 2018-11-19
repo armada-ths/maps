@@ -39,8 +39,8 @@
 
 			#title {
 				margin: 0;
-        color: #06d591;
-        font-size: 2rem;
+				color: #06d591;
+				font-size: 2rem;
 				font-family: Helvetica Neue, Helvetica, Arial, sans-serif;
 			}
 
@@ -61,8 +61,8 @@
 				bottom: 16px;
 				right: 16px;
 				z-index: 10;
-        border-radius: 4px;
-        border: solid 2px rgba(0,0,0,0.2);
+				border-radius: 4px;
+				border: solid 2px rgba(0,0,0,0.2);
 			}
 
 		</style>
@@ -72,6 +72,10 @@
 			<h1 id="title"></h1>
 		</div>
 		<div id="select-menu">
+			<select id="exhibitor-select">
+                <option value="0">Go to exhibitor...</option>
+            </select>
+            
 			<select id="map-select"></select>
 		</div>
 		<div id="map"></div>
@@ -98,13 +102,27 @@
           {
             crs: L.CRS.Simple,
             zoomControl: false,
-            minZoom: -5
+            minZoom: -2
           });
 
       L.control.zoom({position: 'bottomleft'})
           .addTo(map);
 
       setup_maps();
+      setup_exhibitors();
+      
+      $('#exhibitor-select').change(function()
+      {
+        var selected = $('#exhibitor-select :selected');
+        var booth_id = parseInt(selected.val());
+        
+        if (booth_id !== 0)
+        {
+            var location_id = selected.attr('data-location');
+            
+            document.location = '?location=' + location_id + '&booth=' + booth_id;
+        }
+      });
     });
 
     function parseQuery(queryString) {
@@ -116,6 +134,21 @@
       }
       return query;
     }
+    
+    
+    var setup_exhibitors = function()
+    {
+        $.get('https://ais.armada.nu/api/exhibitors', function(exhibitors)
+        {
+            for (var exhibitor of exhibitors)
+            {
+                for (var booth of exhibitor.booths)
+                {
+                    $('#exhibitor-select').append('<option value="' + booth.id + '" data-location="' + booth.location.id + '"' + (selectedBoothId == booth.id ? ' selected' : '') + '>' + exhibitor.name + ' (' + (booth.location.parent !== null ? (booth.location.parent.name + ' – ') : '') + booth.location.name + ' – ' + booth.name + ')</option>');
+                }
+            }
+        });
+    };
 
 
     var setup_maps = function()
